@@ -7,17 +7,18 @@ Two tools:
   - fetch_extract: summarizes/extracts content using Claude Haiku
 """
 
-import html2text
 import anthropic
 from curl_cffi import requests
 from mcp.server.fastmcp import FastMCP
+
+from html_clean import html_to_markdown
 
 mcp = FastMCP("fetch")
 
 _LYNX_UA = "Lynx/2.8.9rel.1 libwww-FM/2.14 SSL-MM/1.4.1"
 
 _MAX_CONTENT_CHARS = 200_000
-_EXTRACT_MAX_CHARS = 500_000
+_EXTRACT_MAX_CHARS = 300_000
 
 
 def _fetch_url(url: str) -> str:
@@ -33,11 +34,7 @@ def _fetch_url(url: str) -> str:
     content_type = resp.headers.get("content-type", "")
 
     if "html" in content_type:
-        converter = html2text.HTML2Text()
-        converter.ignore_links = False
-        converter.ignore_images = True
-        converter.body_width = 0  # no wrapping
-        return converter.handle(resp.text)
+        return html_to_markdown(resp.text)
     else:
         return resp.text
 

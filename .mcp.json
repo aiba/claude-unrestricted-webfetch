@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "fetch_curl": {
+    "unrestricted_curl": {
       "command": ".venv/bin/python3",
       "args": ["fetch_curl.py"],
       "env": {
@@ -8,7 +8,7 @@
         "HTTP_PROXY": ""
       }
     },
-    "fetch_playwright": {
+    "unrestricted_playwright": {
       "command": ".venv/bin/python3",
       "args": ["fetch_playwright.py"],
       "env": {

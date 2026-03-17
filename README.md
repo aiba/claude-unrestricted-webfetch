@@ -6,8 +6,8 @@ Claude Code's built-in `WebFetch` tool respects robots.txt and maintains a domai
 
 | Server | Script | Speed | JS support | Best for |
 |--------|--------|-------|------------|----------|
-| **fetch_curl** | `fetch_curl.py` | Fast (~instant) | No | Docs, wikis, news, APIs, most sites |
-| **fetch_playwright** | `fetch_playwright.py` | Slower (~3-5s) | Yes | Shopping sites, SPAs, JS-rendered pages |
+| **unrestricted_curl** | `fetch_curl.py` | Fast (~instant) | No | Docs, wikis, news, APIs, most sites |
+| **unrestricted_playwright** | `fetch_playwright.py` | Slower (~3-5s) | Yes | Shopping sites, SPAs, JS-rendered pages |
 
 Each server exposes the same two tools:
 
@@ -16,9 +16,9 @@ Each server exposes the same two tools:
 | `fetch` | Returns full page content as markdown (up to 200k chars) |
 | `fetch_extract` | Fetches the page, then uses Claude Haiku to extract/summarize specific information (more token-efficient) |
 
-**fetch_curl** uses `curl_cffi` with a Lynx (text browser) User-Agent, which avoids TLS fingerprint blocking and encourages servers to return server-rendered HTML.
+**unrestricted_curl** uses `curl_cffi` with a Lynx (text browser) User-Agent, which avoids TLS fingerprint blocking and encourages servers to return server-rendered HTML.
 
-**fetch_playwright** uses a persistent headless Chrome browser (via Playwright with stealth mode). The browser launches once per Claude Code session and is reused for all requests.
+**unrestricted_playwright** uses a persistent headless Chrome browser (via Playwright with stealth mode). The browser launches once per Claude Code session and is reused for all requests.
 
 ## Quick Start
 
@@ -33,7 +33,7 @@ cd claude-unrestricted-webfetch
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install "mcp[cli]" curl_cffi playwright playwright-stealth html2text anthropic
+.venv/bin/pip install "mcp[cli]" curl_cffi playwright playwright-stealth html2text beautifulsoup4 lxml anthropic
 .venv/bin/playwright install chromium
 ```
 
@@ -44,7 +44,7 @@ Create `.mcp.json` in **your project** (the project where you want Claude to hav
 ```json
 {
   "mcpServers": {
-    "fetch_curl": {
+    "unrestricted_curl": {
       "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
       "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_curl.py"],
       "env": {
@@ -52,7 +52,7 @@ Create `.mcp.json` in **your project** (the project where you want Claude to hav
         "HTTP_PROXY": ""
       }
     },
-    "fetch_playwright": {
+    "unrestricted_playwright": {
       "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
       "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_playwright.py"],
       "env": {
@@ -72,15 +72,15 @@ Then create `.claude/settings.local.json` in your project to auto-approve the to
 {
   "permissions": {
     "allow": [
-      "mcp__fetch_curl__fetch",
-      "mcp__fetch_curl__fetch_extract",
-      "mcp__fetch_playwright__fetch",
-      "mcp__fetch_playwright__fetch_extract"
+      "mcp__unrestricted_curl__fetch",
+      "mcp__unrestricted_curl__fetch_extract",
+      "mcp__unrestricted_playwright__fetch",
+      "mcp__unrestricted_playwright__fetch_extract"
     ]
   },
   "enabledMcpjsonServers": [
-    "fetch_curl",
-    "fetch_playwright"
+    "unrestricted_curl",
+    "unrestricted_playwright"
   ]
 }
 ```
@@ -95,8 +95,8 @@ Add this to your project's `CLAUDE.md`:
 Always use the MCP fetch tools for all web browsing and URL fetching. Never use the built-in `WebFetch` tool — it is blocked by robots.txt and domain restrictions.
 
 Two servers are available:
-- `mcp__fetch_curl__fetch` / `mcp__fetch_curl__fetch_extract` — fast, lightweight, no JS rendering. Use by default.
-- `mcp__fetch_playwright__fetch` / `mcp__fetch_playwright__fetch_extract` — headless Chrome, handles JS-rendered pages. Use for shopping sites and SPAs.
+- `mcp__unrestricted_curl__fetch` / `mcp__unrestricted_curl__fetch_extract` — fast, lightweight, no JS rendering. Use by default.
+- `mcp__unrestricted_playwright__fetch` / `mcp__unrestricted_playwright__fetch_extract` — headless Chrome, handles JS-rendered pages. Use for shopping sites and SPAs.
 
 Use `fetch_extract` variants when you only need specific information from a page (more token-efficient).
 ```
@@ -147,7 +147,7 @@ To make the fetch tools available in **all** your Claude Code projects (not just
 ```json
 {
   "mcpServers": {
-    "fetch_curl": {
+    "unrestricted_curl": {
       "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
       "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_curl.py"],
       "env": {
@@ -155,7 +155,7 @@ To make the fetch tools available in **all** your Claude Code projects (not just
         "HTTP_PROXY": ""
       }
     },
-    "fetch_playwright": {
+    "unrestricted_playwright": {
       "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
       "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_playwright.py"],
       "env": {
@@ -172,15 +172,15 @@ To make the fetch tools available in **all** your Claude Code projects (not just
 {
   "permissions": {
     "allow": [
-      "mcp__fetch_curl__fetch",
-      "mcp__fetch_curl__fetch_extract",
-      "mcp__fetch_playwright__fetch",
-      "mcp__fetch_playwright__fetch_extract"
+      "mcp__unrestricted_curl__fetch",
+      "mcp__unrestricted_curl__fetch_extract",
+      "mcp__unrestricted_playwright__fetch",
+      "mcp__unrestricted_playwright__fetch_extract"
     ]
   },
   "enabledMcpjsonServers": [
-    "fetch_curl",
-    "fetch_playwright"
+    "unrestricted_curl",
+    "unrestricted_playwright"
   ]
 }
 ```

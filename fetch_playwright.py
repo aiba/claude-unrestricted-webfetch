@@ -7,16 +7,17 @@ Two tools:
 
 import atexit
 
-import html2text
 import anthropic
 from playwright.async_api import async_playwright
 from playwright_stealth import Stealth
 from mcp.server.fastmcp import FastMCP
 
+from html_clean import html_to_markdown
+
 mcp = FastMCP("fetch")
 
 _MAX_CONTENT_CHARS = 200_000
-_EXTRACT_MAX_CHARS = 500_000
+_EXTRACT_MAX_CHARS = 300_000
 _JS_RENDER_WAIT_MS = 3_000
 
 # Persistent browser — launched once, reused for all requests.
@@ -46,15 +47,11 @@ async def _fetch_url(url: str) -> str:
     try:
         await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
         await page.wait_for_timeout(_JS_RENDER_WAIT_MS)
-        html = await page.content()
+        raw_html = await page.content()
     finally:
         await page.close()
 
-    converter = html2text.HTML2Text()
-    converter.ignore_links = False
-    converter.ignore_images = True
-    converter.body_width = 0  # no wrapping
-    return converter.handle(html)
+    return html_to_markdown(raw_html)
 
 
 @mcp.tool()
