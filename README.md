@@ -26,18 +26,33 @@ Each server exposes the same two tools:
 
 ```bash
 git clone https://github.com/aiba/claude-unrestricted-webfetch.git
-cd claude-unrestricted-webfetch
 ```
 
-### 2. Install dependencies
+### 2. Point Claude at it and go
+
+Open Claude Code in any project and say:
+
+> I cloned claude-unrestricted-webfetch to ~/git/claude-unrestricted-webfetch (or wherever you put it). Set it up so I have unrestricted web fetch. Install dependencies, configure the MCP servers, and update CLAUDE.md.
+
+Claude will handle the rest — creating the venv, installing packages, configuring `.mcp.json`, permissions, and `CLAUDE.md`.
+
+### Manual setup
+
+If you prefer to set things up yourself:
+
+<details>
+<summary>Click to expand manual instructions</summary>
+
+#### Install dependencies
 
 ```bash
+cd claude-unrestricted-webfetch
 python3 -m venv .venv
 .venv/bin/pip install "mcp[cli]" curl_cffi playwright playwright-stealth html2text beautifulsoup4 lxml anthropic
 .venv/bin/playwright install chromium
 ```
 
-### 3. Configure Claude Code
+#### Configure Claude Code
 
 Create `.mcp.json` in **your project** (the project where you want Claude to have unrestricted fetch). You can configure one or both servers:
 
@@ -85,7 +100,7 @@ Then create `.claude/settings.local.json` in your project to auto-approve the to
 }
 ```
 
-### 4. Tell Claude to use it
+#### Tell Claude to use it
 
 Add this to your project's `CLAUDE.md`:
 
@@ -101,7 +116,9 @@ Two servers are available:
 Use `fetch_extract` variants when you only need specific information from a page (more token-efficient).
 ```
 
-### 5. Restart Claude Code
+</details>
+
+### Restart Claude Code
 
 ```bash
 claude
