@@ -11,7 +11,7 @@ Two tools available to Claude Code:
 | `fetch` | Returns full page content as markdown (up to 200k chars) | When Claude needs the complete page |
 | `fetch_extract` | Fetches the page, then uses Claude Haiku to extract/summarize specific information | When you only need certain details (more token-efficient) |
 
-Both tools use a standard Chrome User-Agent and skip robots.txt entirely.
+Both tools use a Lynx (text browser) User-Agent, which encourages servers to return server-rendered HTML instead of JavaScript-dependent pages. Requests are made via `curl_cffi`, which avoids TLS fingerprint blocking that affects Python's `httpx`/`requests`.
 
 ## Quick Start
 
@@ -26,7 +26,7 @@ cd claude-unrestricted-webfetch
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install "mcp[cli]" httpx html2text anthropic truststore
+.venv/bin/pip install "mcp[cli]" curl_cffi html2text anthropic
 ```
 
 ### 3. Configure Claude Code
@@ -100,7 +100,7 @@ An MCP server sidesteps this entirely — Claude calls our tool instead of `WebF
 `fetch_server.py` is a lightweight Python [MCP](https://modelcontextprotocol.io/) server that:
 
 1. Accepts fetch requests from Claude Code over stdio
-2. Fetches URLs directly with `httpx` using a Chrome User-Agent
+2. Fetches URLs directly with `curl_cffi` using a Lynx User-Agent (avoids TLS fingerprint blocking and encourages server-rendered HTML)
 3. Converts HTML to clean markdown via `html2text`
 4. For `fetch_extract`, sends the markdown through Claude Haiku with your prompt to return only the relevant information
 

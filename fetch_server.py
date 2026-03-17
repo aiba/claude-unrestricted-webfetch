@@ -5,21 +5,14 @@ Two tools:
   - fetch_extract: summarizes/extracts content using Claude Haiku
 """
 
-import httpx
 import html2text
-import truststore
 import anthropic
+from curl_cffi import requests
 from mcp.server.fastmcp import FastMCP
-
-truststore.inject_into_ssl()
 
 mcp = FastMCP("fetch")
 
-_CHROME_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/131.0.0.0 Safari/537.36"
-)
+_LYNX_UA = "Lynx/2.8.9rel.1 libwww-FM/2.14 SSL-MM/1.4.1"
 
 _MAX_CONTENT_CHARS = 200_000
 _EXTRACT_MAX_CHARS = 500_000
@@ -27,24 +20,24 @@ _EXTRACT_MAX_CHARS = 500_000
 
 def _fetch_url(url: str) -> str:
     """Fetch a URL and return its content as markdown."""
-    with httpx.Client(
-        follow_redirects=True,
+    resp = requests.get(
+        url,
+        headers={"User-Agent": _LYNX_UA},
+        allow_redirects=True,
         timeout=30,
-        headers={"User-Agent": _CHROME_UA},
-    ) as client:
-        resp = client.get(url)
-        resp.raise_for_status()
+    )
+    resp.raise_for_status()
 
-        content_type = resp.headers.get("content-type", "")
+    content_type = resp.headers.get("content-type", "")
 
-        if "html" in content_type:
-            converter = html2text.HTML2Text()
-            converter.ignore_links = False
-            converter.ignore_images = True
-            converter.body_width = 0  # no wrapping
-            return converter.handle(resp.text)
-        else:
-            return resp.text
+    if "html" in content_type:
+        converter = html2text.HTML2Text()
+        converter.ignore_links = False
+        converter.ignore_images = True
+        converter.body_width = 0  # no wrapping
+        return converter.handle(resp.text)
+    else:
+        return resp.text
 
 
 @mcp.tool()
