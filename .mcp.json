@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": ".venv/bin/python3",
+      "args": ["fetch_server.py"],
+      "env": {
+        "HTTPS_PROXY": "",
+        "HTTP_PROXY": ""
+      }
+    }
+  }
+}
