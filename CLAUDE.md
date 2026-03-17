@@ -2,7 +2,10 @@
 
 ## Web Fetching
 
-Always use `mcp__fetch__fetch` or `mcp__fetch__fetch_extract` for all web browsing and URL fetching. Never use the built-in `WebFetch` tool — it is blocked by robots.txt and domain restrictions.
+Always use the MCP fetch tools for all web browsing and URL fetching. Never use the built-in `WebFetch` tool — it is blocked by robots.txt and domain restrictions.
 
-- Use `mcp__fetch__fetch_extract` when you only need specific information from a page (more token-efficient).
-- Use `mcp__fetch__fetch` when you need the full page content.
+Two servers are available:
+- `mcp__fetch_curl__fetch` / `mcp__fetch_curl__fetch_extract` — fast, lightweight, no JS rendering. Use by default.
+- `mcp__fetch_playwright__fetch` / `mcp__fetch_playwright__fetch_extract` — headless Chrome, handles JS-rendered pages. Use for shopping sites and SPAs.
+
+Use `fetch_extract` variants when you only need specific information from a page (more token-efficient).

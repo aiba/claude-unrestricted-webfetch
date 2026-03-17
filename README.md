@@ -1,17 +1,24 @@
 # Unrestricted Web Fetch for Claude Code
 
-Claude Code's built-in `WebFetch` tool respects robots.txt and maintains a domain blocklist, which prevents it from fetching many websites. This project provides a drop-in MCP server that gives Claude Code unrestricted web browsing — no robots.txt checks, no domain blocklist.
+Claude Code's built-in `WebFetch` tool respects robots.txt and maintains a domain blocklist, which prevents it from fetching many websites. This project provides drop-in MCP servers that give Claude Code unrestricted web browsing — no robots.txt checks, no domain blocklist.
 
-## What you get
+## Two servers
 
-Two tools available to Claude Code:
+| Server | Script | Speed | JS support | Best for |
+|--------|--------|-------|------------|----------|
+| **fetch_curl** | `fetch_curl.py` | Fast (~instant) | No | Docs, wikis, news, APIs, most sites |
+| **fetch_playwright** | `fetch_playwright.py` | Slower (~3-5s) | Yes | Shopping sites, SPAs, JS-rendered pages |
 
-| Tool | Description | When to use |
-|------|-------------|-------------|
-| `fetch` | Returns full page content as markdown (up to 200k chars) | When Claude needs the complete page |
-| `fetch_extract` | Fetches the page, then uses Claude Haiku to extract/summarize specific information | When you only need certain details (more token-efficient) |
+Each server exposes the same two tools:
 
-Both tools use a Lynx (text browser) User-Agent, which encourages servers to return server-rendered HTML instead of JavaScript-dependent pages. Requests are made via `curl_cffi`, which avoids TLS fingerprint blocking that affects Python's `httpx`/`requests`.
+| Tool | Description |
+|------|-------------|
+| `fetch` | Returns full page content as markdown (up to 200k chars) |
+| `fetch_extract` | Fetches the page, then uses Claude Haiku to extract/summarize specific information (more token-efficient) |
+
+**fetch_curl** uses `curl_cffi` with a Lynx (text browser) User-Agent, which avoids TLS fingerprint blocking and encourages servers to return server-rendered HTML.
+
+**fetch_playwright** uses a persistent headless Chrome browser (via Playwright with stealth mode). The browser launches once per Claude Code session and is reused for all requests.
 
 ## Quick Start
 
@@ -26,19 +33,28 @@ cd claude-unrestricted-webfetch
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install "mcp[cli]" curl_cffi html2text anthropic
+.venv/bin/pip install "mcp[cli]" curl_cffi playwright playwright-stealth html2text anthropic
+.venv/bin/playwright install chromium
 ```
 
 ### 3. Configure Claude Code
 
-Create `.mcp.json` in **your project** (the project where you want Claude to have unrestricted fetch):
+Create `.mcp.json` in **your project** (the project where you want Claude to have unrestricted fetch). You can configure one or both servers:
 
 ```json
 {
   "mcpServers": {
-    "fetch": {
+    "fetch_curl": {
       "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
-      "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_server.py"],
+      "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_curl.py"],
+      "env": {
+        "HTTPS_PROXY": "",
+        "HTTP_PROXY": ""
+      }
+    },
+    "fetch_playwright": {
+      "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
+      "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_playwright.py"],
       "env": {
         "HTTPS_PROXY": "",
         "HTTP_PROXY": ""
@@ -56,12 +72,15 @@ Then create `.claude/settings.local.json` in your project to auto-approve the to
 {
   "permissions": {
     "allow": [
-      "mcp__fetch__fetch",
-      "mcp__fetch__fetch_extract"
+      "mcp__fetch_curl__fetch",
+      "mcp__fetch_curl__fetch_extract",
+      "mcp__fetch_playwright__fetch",
+      "mcp__fetch_playwright__fetch_extract"
     ]
   },
   "enabledMcpjsonServers": [
-    "fetch"
+    "fetch_curl",
+    "fetch_playwright"
   ]
 }
 ```
@@ -73,10 +92,13 @@ Add this to your project's `CLAUDE.md`:
 ```markdown
 ## Web Fetching
 
-Always use `mcp__fetch__fetch` or `mcp__fetch__fetch_extract` for all web browsing and URL fetching. Never use the built-in `WebFetch` tool.
+Always use the MCP fetch tools for all web browsing and URL fetching. Never use the built-in `WebFetch` tool — it is blocked by robots.txt and domain restrictions.
 
-- Use `mcp__fetch__fetch_extract` when you only need specific information from a page (more token-efficient).
-- Use `mcp__fetch__fetch` when you need the full page content.
+Two servers are available:
+- `mcp__fetch_curl__fetch` / `mcp__fetch_curl__fetch_extract` — fast, lightweight, no JS rendering. Use by default.
+- `mcp__fetch_playwright__fetch` / `mcp__fetch_playwright__fetch_extract` — headless Chrome, handles JS-rendered pages. Use for shopping sites and SPAs.
+
+Use `fetch_extract` variants when you only need specific information from a page (more token-efficient).
 ```
 
 ### 5. Restart Claude Code
@@ -85,7 +107,7 @@ Always use `mcp__fetch__fetch` or `mcp__fetch__fetch_extract` for all web browsi
 claude
 ```
 
-The fetch MCP server starts automatically. You can verify it's working by asking Claude to fetch a normally-blocked site like reddit.com.
+The MCP servers start automatically. You can verify they're working by asking Claude to fetch a normally-blocked site like reddit.com.
 
 ## Why not use a MITM proxy?
 
@@ -97,14 +119,13 @@ An MCP server sidesteps this entirely — Claude calls our tool instead of `WebF
 
 ## How it works
 
-`fetch_server.py` is a lightweight Python [MCP](https://modelcontextprotocol.io/) server that:
+Both servers are lightweight Python [MCP](https://modelcontextprotocol.io/) servers that accept fetch requests from Claude Code over stdio and convert HTML to clean markdown via `html2text`.
 
-1. Accepts fetch requests from Claude Code over stdio
-2. Fetches URLs directly with `curl_cffi` using a Lynx User-Agent (avoids TLS fingerprint blocking and encourages server-rendered HTML)
-3. Converts HTML to clean markdown via `html2text`
-4. For `fetch_extract`, sends the markdown through Claude Haiku with your prompt to return only the relevant information
+**`fetch_curl.py`** makes direct HTTP requests using `curl_cffi` with a Lynx User-Agent. This avoids TLS fingerprint blocking that affects Python's `httpx`/`requests` and encourages servers to return server-rendered HTML instead of JS-dependent pages.
 
-No proxy, no middleware, no browser automation — just direct HTTP requests.
+**`fetch_playwright.py`** launches a persistent headless Chromium browser with stealth mode. Each request opens a new tab, waits for the page to fully render (including JavaScript), extracts the HTML, and closes the tab. The browser stays running for the entire Claude Code session.
+
+Both servers support `fetch_extract`, which sends the fetched markdown through Claude Haiku with your prompt to return only the relevant information.
 
 ## Requirements
 
@@ -126,9 +147,17 @@ To make the fetch tools available in **all** your Claude Code projects (not just
 ```json
 {
   "mcpServers": {
-    "fetch": {
+    "fetch_curl": {
       "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
-      "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_server.py"],
+      "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_curl.py"],
+      "env": {
+        "HTTPS_PROXY": "",
+        "HTTP_PROXY": ""
+      }
+    },
+    "fetch_playwright": {
+      "command": "/absolute/path/to/claude-unrestricted-webfetch/.venv/bin/python3",
+      "args": ["/absolute/path/to/claude-unrestricted-webfetch/fetch_playwright.py"],
       "env": {
         "HTTPS_PROXY": "",
         "HTTP_PROXY": ""
@@ -143,12 +172,15 @@ To make the fetch tools available in **all** your Claude Code projects (not just
 {
   "permissions": {
     "allow": [
-      "mcp__fetch__fetch",
-      "mcp__fetch__fetch_extract"
+      "mcp__fetch_curl__fetch",
+      "mcp__fetch_curl__fetch_extract",
+      "mcp__fetch_playwright__fetch",
+      "mcp__fetch_playwright__fetch_extract"
     ]
   },
   "enabledMcpjsonServers": [
-    "fetch"
+    "fetch_curl",
+    "fetch_playwright"
   ]
 }
 ```

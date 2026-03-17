@@ -1,8 +1,16 @@
 {
   "mcpServers": {
-    "fetch": {
+    "fetch_curl": {
       "command": ".venv/bin/python3",
-      "args": ["fetch_server.py"],
+      "args": ["fetch_curl.py"],
+      "env": {
+        "HTTPS_PROXY": "",
+        "HTTP_PROXY": ""
+      }
+    },
+    "fetch_playwright": {
+      "command": ".venv/bin/python3",
+      "args": ["fetch_playwright.py"],
       "env": {
         "HTTPS_PROXY": "",
         "HTTP_PROXY": ""

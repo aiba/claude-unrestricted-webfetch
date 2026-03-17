@@ -1,4 +1,6 @@
-"""MCP server providing unrestricted web fetch tools.
+"""Lightweight MCP server providing unrestricted web fetch via curl_cffi.
+
+Fast but can't render JavaScript. Use fetch_playwright.py for JS-heavy sites.
 
 Two tools:
   - fetch: returns full page content as markdown
@@ -44,7 +46,8 @@ def _fetch_url(url: str) -> str:
 def fetch(url: str) -> str:
     """Fetch a URL and return its full content as markdown.
 
-    Use this for reading web pages without restrictions.
+    Fast lightweight fetch using curl with a Lynx User-Agent.
+    Works well for most sites but cannot render JavaScript.
     Content is truncated to 200k characters.
     """
     content = _fetch_url(url)
